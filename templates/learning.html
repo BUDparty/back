@@ -1,0 +1,16 @@
+<!-- templates/learning.html -->
+
+{% for chapter in chapters %}
+    <div>
+        <h2>챕터 {{ forloop.counter }} : {{ chapter.title }}</h2>
+        <p>한국 사람들과 기본 인사를 하는 방법을 배워봅시다.</p>
+        {% for unit in units %}
+            {% if unit.chapter.id == chapter.id %}
+                <div>
+                    <p>유닛 {{ forloop.counter }}. {{ unit.korean_word }} 학습하기</p>
+                    <p>{{ chapter.title }} | 기본</p>
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+{% endfor %}

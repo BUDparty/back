@@ -1,0 +1,8 @@
+Django>=3.2,<4.0
+djangorestframework>=3.12.4,<3.13
+gunicorn
+psycopg2-binary
+django
+djangorestframework
+dj-database-url
+openai

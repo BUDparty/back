@@ -14,3 +14,5 @@ class Word(models.Model):
     def __str__(self):
         return self.korean_word
 
+
+

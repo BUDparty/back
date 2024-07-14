@@ -9,6 +9,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.join(BASE_DIR, 'path_to_your_google_cloud_credentials.json')
 
 
+#openAI key
+OPENAI_API_KEY = 'sk-proj-bOtVoAbqkiIn7YBQZPHRT3BlbkFJHPpKkijp3MLaxoloxcwr'
+
+
+
 # Django 프로젝트의 비밀 키 설정
 SECRET_KEY = 'your-secret-key'
 
@@ -133,6 +138,10 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
     ),
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
+
 }
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:8000',

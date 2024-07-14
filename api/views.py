@@ -4,7 +4,12 @@ from rest_framework.response import Response
 from rest_framework import viewsets
 from .models import Word, Chapter
 from .serializers import WordSerializer, ChapterSerializer
+
 import openai
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from django.conf import settings
 
 class WordViewSet(viewsets.ModelViewSet):
     queryset = Word.objects.all()
@@ -33,6 +38,9 @@ class ChapterViewSet(viewsets.ModelViewSet):
             return JsonResponse(serializer.data, safe=False, json_dumps_params={'ensure_ascii': False})
         except Chapter.DoesNotExist:
             return JsonResponse({'error': '챕터를 찾을 수 없습니다'}, status=404, json_dumps_params={'ensure_ascii': False})
+
+
+
 
 
 

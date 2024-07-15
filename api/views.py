@@ -41,6 +41,36 @@ class ChapterViewSet(viewsets.ModelViewSet):
 
 
 
+from django.http import JsonResponse
+from .models import Word
+from django.db.models import Count, Q
+
+def get_progress(request):
+    chapters = Word.objects.values('chapter_id').annotate(
+        total_words=Count('id'),
+        called_words=Count('id', filter=Q(is_called=True)),
+        progress=Count('id', filter=Q(is_called=True)) * 100.0 / Count('id')
+    )
+
+    progress_data = [
+        {
+            'chapter_id': chapter['chapter_id'],
+            'chapter_title': f'챕터 {chapter["chapter_id"]}',
+            'progress': chapter['progress'],
+            'total_words': chapter['total_words'],
+            'called_words': chapter['called_words']
+        }
+        for chapter in chapters
+    ]
+
+    completed_chapters = sum(1 for chapter in progress_data if chapter['progress'] == 100)
+    overall_progress = sum(chapter['progress'] for chapter in progress_data) / len(progress_data) if progress_data else 0
+
+    return JsonResponse({
+        'progress_data': progress_data,
+        'completed_chapters': completed_chapters,
+        'overall_progress': overall_progress
+    })
 
 
 

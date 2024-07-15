@@ -1,6 +1,6 @@
 from django.urls import include, path, re_path
 from rest_framework.routers import DefaultRouter
-from .views import ChapterViewSet, WordViewSet
+from .views import ChapterViewSet, WordViewSet, get_progress
 
 
 
@@ -12,5 +12,5 @@ urlpatterns = [
     path('', include(router.urls)),
     path('chapters/<int:pk>/words/', ChapterViewSet.as_view({'get': 'words'}), name='chapter-words'),
     path('words/<int:pk>/save/', WordViewSet.as_view({'post': 'save_word'})),
-
+    path('get_progress/', get_progress, name='get_progress'),
 ]

@@ -89,7 +89,7 @@ DATABASES = {
         'NAME': 'budparty',
         'USER': 'root',
         'PASSWORD': '5909',
-        'HOST': 'localhost',
+        'HOST': '34.46.171.130',
         'PORT': '3306',  # MariaDB 기본 포트
         'OPTIONS': {
             'charset': 'utf8mb4',

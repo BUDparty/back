@@ -1,19 +1,14 @@
 from rest_framework import serializers
-
-from .models import Word, Chapter, Sentence
-
+from .models import Word, Chapter
 
 class WordSerializer(serializers.ModelSerializer):
     class Meta:
         model = Word
-        fields = ['id', 'chapter', 'korean_word', 'north_korean_word', 'is_called', 'is_correct', 'is_collect']
+        fields = ['id', 'chapter', 'korean_word', 'north_korean_word', 'is_called', 'is_correct']
 
 class ChapterSerializer(serializers.ModelSerializer):
     class Meta:
         model = Chapter
-        fields = ['id', 'title', 'accuracy']
+        fields = ['id', 'title']
 
-class SentenceSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Sentence
-        fields = ['id', 'chapter', 'korean_sentence', 'north_korean_sentence', 'is_called', 'is_correct', 'is_collect']
+

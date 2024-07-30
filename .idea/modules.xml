@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/BUDparty.iml" filepath="$PROJECT_DIR$/BUDparty.iml" />
+      <module fileurl="file://$PROJECT_DIR$/BUDparty/BUDparty.iml" filepath="$PROJECT_DIR$/BUDparty/BUDparty.iml" />
     </modules>
   </component>
 </project>

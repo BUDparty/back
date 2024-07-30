@@ -6,3 +6,5 @@ django
 djangorestframework
 dj-database-url
 openai
+django-cors-headers
+mysqlclient

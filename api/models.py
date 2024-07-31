@@ -25,6 +25,7 @@ class Sentence(models.Model):
     korean_sentence = models.TextField()
     north_korean_sentence = models.TextField()
     is_collect = models.BooleanField(default=False)
+    is_correct = models.BooleanField(default=False)
     is_called = models.BooleanField(default=False)
     accuracy = models.FloatField(default=0.0)
     recognized_text = models.TextField(blank=True, null=True)

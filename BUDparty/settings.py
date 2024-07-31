@@ -1,17 +1,22 @@
 import os
 from pathlib import Path
 import dj_database_url
+from dotenv import load_dotenv
+import logging
 
 # BASE_DIR은 프로젝트의 루트 디렉토리를 가리킵니다.
 DEFAULT_CHARSET = 'utf-8'
 DEFAULT_CONTENT_TYPE = 'application/json'
 BASE_DIR = Path(__file__).resolve().parent.parent
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.join(BASE_DIR, 'path_to_your_google_cloud_credentials.json')
+load_dotenv(os.path.join(BASE_DIR, '.env'))
+API_KEY = os.getenv('API_KEY')
 
+# Logging configuration
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
-#openAI key
-OPENAI_API_KEY = 'sk-proj-bOtVoAbqkiIn7YBQZPHRT3BlbkFJHPpKkijp3MLaxoloxcwr'
-
+logger.debug(f'API_KEY from environment: {API_KEY}')
 
 
 # Django 프로젝트의 비밀 키 설정
@@ -151,3 +156,19 @@ CORS_ALLOWED_ORIGINS = [
 # MEDIA 설정
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+
+# Logging configuration for views
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'DEBUG',
+    },
+}

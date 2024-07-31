@@ -5,6 +5,7 @@ psycopg2-binary
 django
 djangorestframework
 dj-database-url
-openai
-django-cors-headers
+openaidj-database-url
+djangorestframework
 mysqlclient
+python-dotenv

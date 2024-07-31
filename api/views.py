@@ -1,6 +1,8 @@
 import json
 import logging
 
+from django.conf import settings
+from django.contrib.sites import requests
 from django.shortcuts import get_object_or_404
 from .models import Sentence, Word, Chapter
 from rest_framework import generics, viewsets
@@ -470,3 +472,13 @@ def evaluation_results(request, chapter_id):
     sentences = Sentence.objects.filter(chapter_id=chapter_id)
     serializer = SentenceSerializer(sentences, many=True)
     return Response(serializer.data)
+
+
+
+
+@api_view(['GET'])
+def get_api_key(request):
+    logger.debug('Received request for API key')
+    api_key = settings.API_KEY
+    logger.debug(f'Returning API key: {api_key}')
+    return Response({'api_key': api_key})

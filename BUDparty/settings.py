@@ -151,6 +151,7 @@ REST_FRAMEWORK = {
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:8000',
     'http://127.0.0.1:8000',
+    'http://35.202.241.53:8080',
     # 필요에 따라 다른 원본 추가
 ]
 # MEDIA 설정

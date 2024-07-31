@@ -7,3 +7,4 @@ openai
 dj-database-url
 mysqlclient
 python-dotenv
+django-cors-headers

@@ -556,10 +556,11 @@ def typecast_speak(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 
-client = OpenAI(api_key=settings.API_KEY)
+openai.api_key = settings.API_KEY
 
 
 logger = logging.getLogger(__name__)
+
 
 @api_view(['POST'])
 def chat_with_assistant(request):
@@ -569,23 +570,36 @@ def chat_with_assistant(request):
             return Response({'error': 'Message content is required'}, status=400)
 
         # 사용자 메시지 생성
-        logger.debug(f'Sending message: {prompt}')
-        openai.Completion.create(
-            engine="davinci-codex",
-            prompt=f"The following is a conversation with an AI assistant. The assistant is helpful, creative, clever, and very friendly.\n\nHuman: {prompt}\nAI:",
-            max_tokens=150
+        message_response = openai.Assistant.create_message(
+            assistant_id=settings.ASSISTANT_ID,
+            message={
+                "role": "user",
+                "content": prompt
+            }
         )
+
+        message_id = message_response['message']['id']
 
         # Assistant 응답 생성
-        response = openai.Completion.create(
-            engine="davinci-codex",
-            prompt=f"The following is a conversation with an AI assistant. The assistant is helpful, creative, clever, and very friendly.\n\nHuman: {prompt}\nAI:",
-            max_tokens=150
+        run_response = openai.Assistant.create_run(
+            assistant_id=settings.ASSISTANT_ID,
+            message_id=message_id
         )
 
-        assistant_response = response.choices[0].text.strip()
-        logger.debug(f'Assistant response: {assistant_response}')
-        return Response({'response': assistant_response})
+        run_id = run_response['run']['id']
+
+        # RUN이 완료될 때까지 대기
+        while True:
+            run_status = openai.Assistant.get_run(assistant_id=settings.ASSISTANT_ID, run_id=run_id)
+            if run_status['status'] == 'completed':
+                break
+            time.sleep(1)
+
+        # 완료된 후 메시지 가져오기
+        messages_response = openai.Assistant.get_messages(assistant_id=settings.ASSISTANT_ID)
+        messages = [{'role': msg['role'], 'content': msg['content']} for msg in messages_response['messages']]
+
+        return Response({'messages': messages})
     except Exception as e:
         logger.error(f'Error in chat_with_assistant: {str(e)}', exc_info=True)
         return Response({'error': str(e)}, status=500)

@@ -12,7 +12,7 @@ from django.core import serializers
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework import generics, viewsets
+from rest_framework import generics, viewsets, status
 from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 
@@ -558,53 +558,56 @@ def typecast_speak(request):
 
 
 openai.api_key = settings.API_KEY
-
+THREAD_ID = os.getenv("THREAD_ID")
+ASSISTANT_ID = os.getenv("ASSISTANT_ID")
 
 logger = logging.getLogger(__name__)
-
-
-class EventHandler(AssistantEventHandler):
-    def on_text_created(self, text) -> None:
-        self.response_text = ""
-        logger.debug(f"assistant > {text}")
-
-    def on_text_delta(self, delta, snapshot):
-        self.response_text += delta.value
-        logger.debug(delta.value)
-
-    def on_tool_call_created(self, tool_call):
-        logger.debug(f"assistant > {tool_call.type}")
-
-    def on_tool_call_delta(self, delta, snapshot):
-        if delta.type == 'code_interpreter':
-            if delta.code_interpreter.input:
-                logger.debug(delta.code_interpreter.input)
-            if delta.code_interpreter.outputs:
-                logger.debug("output >")
-                for output in delta.code_interpreter.outputs:
-                    if output.type == "logs":
-                        logger.debug(output.logs)
 
 @api_view(['POST'])
 def chat_with_assistant(request):
     try:
         prompt = request.data.get('message')
         if not prompt:
-            return Response({'error': 'Message content is required'}, status=400)
+            return Response({'error': 'Message content is required'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 사용자 메시지 생성 및 Assistant 응답 스트리밍
-        handler = EventHandler()
-        with openai.beta.threads.runs.stream(
-                thread_id='thread_y13Gs47cjDtmvkmVqmVmdgCT',
-                assistant_id='asst_50hQ7xFDN2HFEsDTFd6gTeTp',
-                instructions="Please address the user as Jane Doe. The user has a premium account.",
-                event_handler=handler,
-        ) as stream:
-            stream.until_done()
+        # 사용자 메시지 생성
+        message_response = openai.Assistant.create_message(
+            thread_id=THREAD_ID,
+            role="user",
+            content=prompt
+        )
 
-        assistant_response = handler.response_text
+        # Assistant 응답 생성
+        run_response = openai.Assistant.create_run(
+            thread_id=THREAD_ID,
+            assistant_id=ASSISTANT_ID,
+        )
+
+        # RUN이 완료될 때까지 대기
+        run_id = run_response['id']
+        while True:
+            run_status = openai.Assistant.get_run(
+                thread_id=THREAD_ID,
+                run_id=run_id
+            )
+            if run_status['status'] == "completed":
+                break
+            time.sleep(1)
+
+        # 완료된 후 메시지 가져오기
+        messages = openai.Assistant.list_messages(
+            thread_id=THREAD_ID
+        )
+        assistant_message = next((msg for msg in reversed(messages['data']) if msg['role'] == 'assistant'), None)
+
+        if assistant_message:
+            assistant_response = assistant_message['content']
+        else:
+            assistant_response = "No response from assistant."
+
         logger.debug(f'Assistant response: {assistant_response}')
         return Response({'response': assistant_response})
+
     except Exception as e:
         logger.error(f'Error in chat_with_assistant: {str(e)}', exc_info=True)
-        return Response({'error': str(e)}, status=500)
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -3,6 +3,8 @@ import json
 import logging
 import os
 import time
+
+import openai
 from openai import OpenAI
 from django.conf import settings
 from django.core import serializers
@@ -557,6 +559,8 @@ def typecast_speak(request):
 client = OpenAI(api_key=settings.API_KEY)
 
 
+logger = logging.getLogger(__name__)
+
 @api_view(['POST'])
 def chat_with_assistant(request):
     try:
@@ -565,31 +569,23 @@ def chat_with_assistant(request):
             return Response({'error': 'Message content is required'}, status=400)
 
         # 사용자 메시지 생성
-        client.beta.threads.messages.create(
-            thread_id=settings.THREAD_ID,
-            role="user",
-            content=prompt
+        logger.debug(f'Sending message: {prompt}')
+        openai.Completion.create(
+            engine="davinci-codex",
+            prompt=f"The following is a conversation with an AI assistant. The assistant is helpful, creative, clever, and very friendly.\n\nHuman: {prompt}\nAI:",
+            max_tokens=150
         )
 
         # Assistant 응답 생성
-        run = client.beta.threads.runs.create(
-            thread_id=settings.THREAD_ID,
-            assistant_id=settings.ASSISTANT_ID,
+        response = openai.Completion.create(
+            engine="davinci-codex",
+            prompt=f"The following is a conversation with an AI assistant. The assistant is helpful, creative, clever, and very friendly.\n\nHuman: {prompt}\nAI:",
+            max_tokens=150
         )
 
-        # RUN이 완료될 때까지 대기
-        while run.status != "completed":
-            time.sleep(1)
-            run = client.beta.threads.runs.retrieve(
-                thread_id=settings.THREAD_ID,
-                run_id=run.id
-            )
-
-        # 완료된 후 메시지 가져오기
-        thread_messages = client.beta.threads.messages.list(settings.THREAD_ID)
-        messages = [{'role': msg.role, 'content': msg.content[0].text.value} for msg in reversed(thread_messages.data)]
-
-        return Response({'messages': messages})
+        assistant_response = response.choices[0].text.strip()
+        logger.debug(f'Assistant response: {assistant_response}')
+        return Response({'response': assistant_response})
     except Exception as e:
-        logger.error(f'Error in chat_with_assistant: {str(e)}')
+        logger.error(f'Error in chat_with_assistant: {str(e)}', exc_info=True)
         return Response({'error': str(e)}, status=500)

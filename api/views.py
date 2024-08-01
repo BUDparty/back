@@ -482,3 +482,63 @@ def get_api_key(request):
     api_key = settings.API_KEY
     logger.debug(f'Returning API key: {api_key}')
     return Response({'api_key': api_key})
+
+
+def service_account(request):
+    file_path = os.path.join(os.path.dirname(__file__), 'service_account.json')
+    with open(file_path) as f:
+        data = json.load(f)
+    return JsonResponse(data)
+
+
+
+TYPECAST_API_URL = "https://typecast.ai/api"
+HEADERS = {'Authorization': f'Bearer {settings.T_API_KEY}'}
+
+
+
+@api_view(['POST'])
+def convert_text_to_speech(request):
+    text = request.data.get('text', '')
+
+    if not text:
+        return Response({'error': 'No text provided'}, status=400)
+
+    # Typecast API 호출
+    try:
+        # get my actor
+        r = requests.get(f'{TYPECAST_API_URL}/actor', headers=HEADERS)
+        my_actors = r.json()['result']
+        my_first_actor = my_actors[0]
+        my_first_actor_id = my_first_actor['actor_id']
+
+        # request speech synthesis
+        r = requests.post(f'{TYPECAST_API_URL}/speak', headers=HEADERS, json={
+            'text': text,
+            'lang': 'auto',
+            'actor_id': my_first_actor_id,
+            'xapi_hd': True,
+            'model_version': 'latest'
+        })
+        speak_url = r.json()['result']['speak_v2_url']
+
+        # polling the speech synthesis result
+        for _ in range(120):
+            r = requests.get(speak_url, headers=HEADERS)
+            ret = r.json()['result']
+            # audio is ready
+            if ret['status'] == 'done':
+                # download audio file
+                audio_response = requests.get(ret['audio_download_url'])
+                audio_file_path = 'media/out.wav'
+                with open(audio_file_path, 'wb') as f:
+                    f.write(audio_response.content)
+                return Response({'audio_url': f'/media/out.wav'})
+            else:
+                print(f"status: {ret['status']}, waiting 1 second")
+                time.sleep(1)
+
+        return Response({'error': 'Audio synthesis timed out'}, status=500)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)

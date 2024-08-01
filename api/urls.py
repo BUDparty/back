@@ -7,7 +7,7 @@ from .views import (
     mark_sentence_as_called, get_chapters, get_next_chapter, get_saved_words,
     get_saved_sentences, save_word, update_word, update_sentence, get_chapter_learning_progress,
     SentenceListCreate, update_sentence_is_collect, update_sentence_is_called,
-    fetch_progress_data, fetch_incollect_words, update_sentence_accuracy_and_text, get_api_key
+    fetch_progress_data, fetch_incollect_words, update_sentence_accuracy_and_text, get_api_key, service_account, convert_text_to_speech
 )
 
 # DefaultRouter를 사용하여 ViewSet을 자동으로 라우팅합니다.
@@ -50,5 +50,6 @@ urlpatterns = [
     path('sentences/<int:sentence_id>/update_accuracy_and_text/', views.update_sentence_accuracy_and_text),
     path('chapters/<int:chapter_id>/evaluation_results/', views.evaluation_results, name='evaluation_results'),
     path('get-api-key/', get_api_key, name='get_api_key'),
-
+    path('service-account/', service_account, name='service_account'),
+    path('convert/', convert_text_to_speech, name='convert_text_to_speech'),
 ]

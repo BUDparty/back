@@ -5,7 +5,7 @@ import os
 import time
 
 import openai
-from openai import OpenAI, AssistantEventHandler
+
 
 from django.conf import settings
 from django.core import serializers
@@ -562,7 +562,8 @@ THREAD_ID = os.getenv("THREAD_ID")
 ASSISTANT_ID = os.getenv("ASSISTANT_ID")
 
 logger = logging.getLogger(__name__)
-
+session_messages = []
+@csrf_exempt
 @api_view(['POST'])
 def chat_with_assistant(request):
     try:
@@ -570,40 +571,23 @@ def chat_with_assistant(request):
         if not prompt:
             return Response({'error': 'Message content is required'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 사용자 메시지 생성
-        message_response = openai.Assistant.create_message(
-            thread_id=THREAD_ID,
-            role="user",
-            content=prompt
-        )
+        # 질문 필터링
+        if "한국말" not in prompt and "북한말" not in prompt:
+            return Response({'response': '이 서비스는 한국말과 북한말에 관한 질문에만 답변합니다.'}, status=status.HTTP_200_OK)
+
+        # 대화 상태를 유지하기 위해 메시지 추가
+        session_messages.append({"role": "user", "content": prompt})
 
         # Assistant 응답 생성
-        run_response = openai.Assistant.create_run(
-            thread_id=THREAD_ID,
-            assistant_id=ASSISTANT_ID,
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=session_messages
         )
 
-        # RUN이 완료될 때까지 대기
-        run_id = run_response['id']
-        while True:
-            run_status = openai.Assistant.get_run(
-                thread_id=THREAD_ID,
-                run_id=run_id
-            )
-            if run_status['status'] == "completed":
-                break
-            time.sleep(1)
+        assistant_response = response.choices[0].message['content']
 
-        # 완료된 후 메시지 가져오기
-        messages = openai.Assistant.list_messages(
-            thread_id=THREAD_ID
-        )
-        assistant_message = next((msg for msg in reversed(messages['data']) if msg['role'] == 'assistant'), None)
-
-        if assistant_message:
-            assistant_response = assistant_message['content']
-        else:
-            assistant_response = "No response from assistant."
+        # Assistant 응답을 대화 상태에 추가
+        session_messages.append({"role": "assistant", "content": assistant_response})
 
         logger.debug(f'Assistant response: {assistant_response}')
         return Response({'response': assistant_response})

@@ -2,9 +2,11 @@ import json
 import logging
 import os
 import time
+
+import requests
 from django.shortcuts import render
 from django.conf import settings
-from django.contrib.sites import requests
+
 from django.shortcuts import get_object_or_404
 from .models import Sentence, Word, Chapter
 from rest_framework import generics, viewsets

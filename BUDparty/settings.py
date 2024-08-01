@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',  # 추가
     'api'
+
 ]
 
 # 미들웨어 설정

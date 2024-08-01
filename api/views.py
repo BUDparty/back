@@ -5,7 +5,8 @@ import os
 import time
 
 import openai
-from openai import OpenAI
+from openai import OpenAI, AssistantEventHandler
+
 from django.conf import settings
 from django.core import serializers
 from django.http import JsonResponse
@@ -562,6 +563,28 @@ openai.api_key = settings.API_KEY
 logger = logging.getLogger(__name__)
 
 
+class EventHandler(AssistantEventHandler):
+    def on_text_created(self, text) -> None:
+        self.response_text = ""
+        logger.debug(f"assistant > {text}")
+
+    def on_text_delta(self, delta, snapshot):
+        self.response_text += delta.value
+        logger.debug(delta.value)
+
+    def on_tool_call_created(self, tool_call):
+        logger.debug(f"assistant > {tool_call.type}")
+
+    def on_tool_call_delta(self, delta, snapshot):
+        if delta.type == 'code_interpreter':
+            if delta.code_interpreter.input:
+                logger.debug(delta.code_interpreter.input)
+            if delta.code_interpreter.outputs:
+                logger.debug("output >")
+                for output in delta.code_interpreter.outputs:
+                    if output.type == "logs":
+                        logger.debug(output.logs)
+
 @api_view(['POST'])
 def chat_with_assistant(request):
     try:
@@ -569,37 +592,19 @@ def chat_with_assistant(request):
         if not prompt:
             return Response({'error': 'Message content is required'}, status=400)
 
-        # 사용자 메시지 생성
-        message_response = openai.Assistant.create_message(
-            assistant_id=settings.ASSISTANT_ID,
-            message={
-                "role": "user",
-                "content": prompt
-            }
-        )
+        # 사용자 메시지 생성 및 Assistant 응답 스트리밍
+        handler = EventHandler()
+        with openai.beta.threads.runs.stream(
+                thread_id=settings.THREAD_ID,
+                assistant_id=settings.ASSISTANT_ID,
+                instructions="Please address the user as Jane Doe. The user has a premium account.",
+                event_handler=handler,
+        ) as stream:
+            stream.until_done()
 
-        message_id = message_response['message']['id']
-
-        # Assistant 응답 생성
-        run_response = openai.Assistant.create_run(
-            assistant_id=settings.ASSISTANT_ID,
-            message_id=message_id
-        )
-
-        run_id = run_response['run']['id']
-
-        # RUN이 완료될 때까지 대기
-        while True:
-            run_status = openai.Assistant.get_run(assistant_id=settings.ASSISTANT_ID, run_id=run_id)
-            if run_status['status'] == 'completed':
-                break
-            time.sleep(1)
-
-        # 완료된 후 메시지 가져오기
-        messages_response = openai.Assistant.get_messages(assistant_id=settings.ASSISTANT_ID)
-        messages = [{'role': msg['role'], 'content': msg['content']} for msg in messages_response['messages']]
-
-        return Response({'messages': messages})
+        assistant_response = handler.response_text
+        logger.debug(f'Assistant response: {assistant_response}')
+        return Response({'response': assistant_response})
     except Exception as e:
         logger.error(f'Error in chat_with_assistant: {str(e)}', exc_info=True)
         return Response({'error': str(e)}, status=500)

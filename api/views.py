@@ -3,7 +3,7 @@ import logging
 import os
 import time
 from django.contrib.sites import requests
-
+import http.client
 from django.shortcuts import render
 from django.conf import settings
 
@@ -497,52 +497,51 @@ def service_account(request):
 
 
 
-TYPECAST_API_URL_ACTOR = 'https://typecast.ai/api/actor'
-TYPECAST_API_URL_SPEAK = 'https://typecast.ai/api/speak'
 
+TYPECAST_API_URL_SPEAK = 'typecast.ai'
+TYPECAST_API_PATH_SPEAK = '/api/speak'
 
 @api_view(['POST'])
 def typecast_speak(request):
-    import requests
     try:
         data = json.loads(request.body)
         text = data.get('text')
 
         headers = {
+            'Content-Type': 'application/json',
             'Authorization': f'Bearer {settings.TYPECAST_API_KEY}'
         }
 
-        # get my actor
-
-
-        response = requests.get(TYPECAST_API_URL_ACTOR, headers=headers)
-        if response.status_code != 200:
-            return JsonResponse({'error': 'Failed to get actor'}, status=500)
-
-        my_actors = response.json().get('result', [])
-        if not my_actors:
-            return JsonResponse({'error': 'No actors found'}, status=500)
-
-        my_first_actor = my_actors[0]
-        my_first_actor_id = my_first_actor['actor_id']
-
-        # request speech synthesis
-        response = requests.post(TYPECAST_API_URL_SPEAK, headers=headers, json={
-            'text': text,
-            'lang': 'auto',
-            'actor_id': my_first_actor_id,
-            'xapi_hd': True,
-            'model_version': 'latest'
+        payload = json.dumps({
+            "actor_id": "6699eb0f10b8e361d6a9aba1",  # 실제 actor_id로 변경
+            "text": text,
+            "lang": "auto",
+            "tempo": 1.2,
+            "volume": 100,
+            "pitch": 0,
+            "xapi_hd": True,
+            "max_seconds": 60,
+            "model_version": "latest",
+            "xapi_audio_format": "wav",
+            "emotion_tone_preset": "happy-1"
         })
-        if response.status_code != 200:
-            return JsonResponse({'error': 'Failed to request speech synthesis'}, status=500)
 
-        speak_url = response.json()['result']['speak_v2_url']
+        conn = http.client.HTTPSConnection(TYPECAST_API_URL_SPEAK)
+        conn.request("POST", TYPECAST_API_PATH_SPEAK, body=payload, headers=headers)
+        response = conn.getresponse()
+        response_data = response.read().decode()
+
+        if response.status != 200:
+            return JsonResponse({'error': 'Failed to request speech synthesis'}, status=response.status)
+
+        response_json = json.loads(response_data)
+        speak_url = response_json['result']['speak_v2_url']
 
         # polling the speech synthesis result
         for _ in range(120):
-            response = requests.get(speak_url, headers=headers)
-            ret = response.json()['result']
+            conn.request("GET", speak_url, headers=headers)
+            response = conn.getresponse()
+            ret = json.loads(response.read().decode())['result']
             # audio is ready
             if ret['status'] == 'done':
                 audio_url = ret['audio_download_url']

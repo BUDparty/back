@@ -493,32 +493,50 @@ def service_account(request):
 
 
 
-TYPECAST_API_URL = 'https://typecast.ai/api/speak'
 
-
+TYPECAST_API_URL_ACTOR = 'https://typecast.ai/api/actor'
+TYPECAST_API_URL_SPEAK = 'https://typecast.ai/api/speak'
 
 @api_view(['POST'])
 def typecast_speak(request):
     try:
         data = json.loads(request.body)
         text = data.get('text')
-        voice = data.get('voice', 'ko-KR-Wavenet-D')
 
-        response = requests.post(
-            TYPECAST_API_URL,
-            headers={
-                'Content-Type': 'application/json',
-                'Authorization': f'Bearer {settings.TYPECAST_API_KEY}',
-            },
-            json={
-                'text': text,
-                'voice': voice,
-            }
-        )
+        headers = {
+            'Authorization': f'Bearer {settings.TYPECAST_API_KEY}'
+        }
 
-        if response.status_code == 200:
-            return JsonResponse(response.json(), status=200)
-        else:
-            return JsonResponse({'error': 'Failed to fetch audio from Typecast API'}, status=500)
+        # get my actor
+        response = requests.get(TYPECAST_API_URL_ACTOR, headers=headers)
+        my_actors = response.json()['result']
+        my_first_actor = my_actors[0]
+        my_first_actor_id = my_first_actor['actor_id']
+
+        # request speech synthesis
+        response = requests.post(TYPECAST_API_URL_SPEAK, headers=headers, json={
+            'text': text,
+            'lang': 'auto',
+            'actor_id': my_first_actor_id,
+            'xapi_hd': True,
+            'model_version': 'latest'
+        })
+        speak_url = response.json()['result']['speak_v2_url']
+
+        # polling the speech synthesis result
+        for _ in range(120):
+            response = requests.get(speak_url, headers=headers)
+            ret = response.json()['result']
+            # audio is ready
+            if ret['status'] == 'done':
+                # download audio file
+                audio_response = requests.get(ret['audio_download_url'])
+                audio_url = ret['audio_download_url']
+                return JsonResponse({'audio_url': audio_url}, status=200)
+            else:
+                time.sleep(1)
+
+        return JsonResponse({'error': 'Audio synthesis timed out'}, status=500)
+
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)

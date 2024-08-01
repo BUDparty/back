@@ -3,6 +3,7 @@ import logging
 import os
 import time
 from django.contrib.sites import requests
+import requests
 from django.shortcuts import render
 from django.conf import settings
 

@@ -12,7 +12,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.path.join(BASE_DIR, 'path_to_your_google_cloud_credentials.json')
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 API_KEY = os.getenv('API_KEY')
-TYPECAST_API_KEY = os.getenv('TYPECAST_API_KEY')
+TYPECAST_API_KEY = os.getenv('T_API_KEY')
 
 # Logging configuration
 logging.basicConfig(level=logging.DEBUG)

@@ -503,6 +503,7 @@ TYPECAST_API_URL_SPEAK = 'https://typecast.ai/api/speak'
 
 @api_view(['POST'])
 def typecast_speak(request):
+    import requests
     try:
         data = json.loads(request.body)
         text = data.get('text')
@@ -513,7 +514,7 @@ def typecast_speak(request):
 
         # get my actor
 
-        import requests
+
         response = requests.get(TYPECAST_API_URL_ACTOR, headers=headers)
         if response.status_code != 200:
             return JsonResponse({'error': 'Failed to get actor'}, status=500)

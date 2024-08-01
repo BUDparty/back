@@ -595,8 +595,8 @@ def chat_with_assistant(request):
         # 사용자 메시지 생성 및 Assistant 응답 스트리밍
         handler = EventHandler()
         with openai.beta.threads.runs.stream(
-                thread_id=settings.THREAD_ID,
-                assistant_id=settings.ASSISTANT_ID,
+                thread_id='thread_y13Gs47cjDtmvkmVqmVmdgCT',
+                assistant_id='asst_50hQ7xFDN2HFEsDTFd6gTeTp',
                 instructions="Please address the user as Jane Doe. The user has a premium account.",
                 event_handler=handler,
         ) as stream:

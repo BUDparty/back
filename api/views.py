@@ -1,22 +1,21 @@
+import http.client
 import json
 import logging
 import os
 import time
-from django.contrib.sites import requests
-import http.client
-from django.shortcuts import render
+from openai import OpenAI
 from django.conf import settings
-
-from django.shortcuts import get_object_or_404
-from .models import Sentence, Word, Chapter
-from rest_framework import generics, viewsets
 from django.core import serializers
-from django.db.models import Count, Q, Avg, Case, When, IntegerField
 from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework import generics, viewsets
 from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
+
+from .models import Sentence, Word, Chapter
 from .serializers import WordSerializer, ChapterSerializer, SentenceSerializer
+
 
 # WordViewSet은 Word 모델과 관련된 API 요청을 처리합니다.
 class WordViewSet(viewsets.ModelViewSet):
@@ -553,3 +552,44 @@ def typecast_speak(request):
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+client = OpenAI(api_key=settings.API_KEY)
+
+
+@api_view(['POST'])
+def chat_with_assistant(request):
+    try:
+        prompt = request.data.get('message')
+        if not prompt:
+            return Response({'error': 'Message content is required'}, status=400)
+
+        # 사용자 메시지 생성
+        client.beta.threads.messages.create(
+            thread_id=settings.THREAD_ID,
+            role="user",
+            content=prompt
+        )
+
+        # Assistant 응답 생성
+        run = client.beta.threads.runs.create(
+            thread_id=settings.THREAD_ID,
+            assistant_id=settings.ASSISTANT_ID,
+        )
+
+        # RUN이 완료될 때까지 대기
+        while run.status != "completed":
+            time.sleep(1)
+            run = client.beta.threads.runs.retrieve(
+                thread_id=settings.THREAD_ID,
+                run_id=run.id
+            )
+
+        # 완료된 후 메시지 가져오기
+        thread_messages = client.beta.threads.messages.list(settings.THREAD_ID)
+        messages = [{'role': msg.role, 'content': msg.content[0].text.value} for msg in reversed(thread_messages.data)]
+
+        return Response({'messages': messages})
+    except Exception as e:
+        logger.error(f'Error in chat_with_assistant: {str(e)}')
+        return Response({'error': str(e)}, status=500)

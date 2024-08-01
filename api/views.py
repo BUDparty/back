@@ -1,6 +1,7 @@
 import json
 import logging
-
+import os
+import time
 from django.conf import settings
 from django.contrib.sites import requests
 from django.shortcuts import get_object_or_404
@@ -492,53 +493,32 @@ def service_account(request):
 
 
 
-TYPECAST_API_URL = "https://typecast.ai/api"
-HEADERS = {'Authorization': f'Bearer {settings.T_API_KEY}'}
+TYPECAST_API_URL = 'https://typecast.ai/api/speak'
 
 
 
 @api_view(['POST'])
-def convert_text_to_speech(request):
-    text = request.data.get('text', '')
-
-    if not text:
-        return Response({'error': 'No text provided'}, status=400)
-
-    # Typecast API 호출
+def typecast_speak(request):
     try:
-        # get my actor
-        r = requests.get(f'{TYPECAST_API_URL}/actor', headers=HEADERS)
-        my_actors = r.json()['result']
-        my_first_actor = my_actors[0]
-        my_first_actor_id = my_first_actor['actor_id']
+        data = json.loads(request.body)
+        text = data.get('text')
+        voice = data.get('voice', 'ko-KR-Wavenet-D')
 
-        # request speech synthesis
-        r = requests.post(f'{TYPECAST_API_URL}/speak', headers=HEADERS, json={
-            'text': text,
-            'lang': 'auto',
-            'actor_id': my_first_actor_id,
-            'xapi_hd': True,
-            'model_version': 'latest'
-        })
-        speak_url = r.json()['result']['speak_v2_url']
+        response = requests.post(
+            TYPECAST_API_URL,
+            headers={
+                'Content-Type': 'application/json',
+                'Authorization': f'Bearer {settings.TYPECAST_API_KEY}',
+            },
+            json={
+                'text': text,
+                'voice': voice,
+            }
+        )
 
-        # polling the speech synthesis result
-        for _ in range(120):
-            r = requests.get(speak_url, headers=HEADERS)
-            ret = r.json()['result']
-            # audio is ready
-            if ret['status'] == 'done':
-                # download audio file
-                audio_response = requests.get(ret['audio_download_url'])
-                audio_file_path = 'media/out.wav'
-                with open(audio_file_path, 'wb') as f:
-                    f.write(audio_response.content)
-                return Response({'audio_url': f'/media/out.wav'})
-            else:
-                print(f"status: {ret['status']}, waiting 1 second")
-                time.sleep(1)
-
-        return Response({'error': 'Audio synthesis timed out'}, status=500)
-
+        if response.status_code == 200:
+            return JsonResponse(response.json(), status=200)
+        else:
+            return JsonResponse({'error': 'Failed to fetch audio from Typecast API'}, status=500)
     except Exception as e:
-        return Response({'error': str(e)}, status=500)
+        return JsonResponse({'error': str(e)}, status=500)

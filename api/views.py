@@ -2,8 +2,7 @@ import json
 import logging
 import os
 import time
-
-import requests
+from django.contrib.sites import requests
 from django.shortcuts import render
 from django.conf import settings
 
@@ -512,6 +511,7 @@ def typecast_speak(request):
         }
 
         # get my actor
+
         response = requests.get(TYPECAST_API_URL_ACTOR, headers=headers)
         if response.status_code != 200:
             return JsonResponse({'error': 'Failed to get actor'}, status=500)

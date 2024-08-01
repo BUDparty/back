@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import time
+from django.shortcuts import render
 from django.conf import settings
 from django.contrib.sites import requests
 from django.shortcuts import get_object_or_404
@@ -496,7 +497,6 @@ def service_account(request):
 
 TYPECAST_API_URL_ACTOR = 'https://typecast.ai/api/actor'
 TYPECAST_API_URL_SPEAK = 'https://typecast.ai/api/speak'
-logger = logging.getLogger(__name__)
 
 @api_view(['POST'])
 def typecast_speak(request):
@@ -511,12 +511,10 @@ def typecast_speak(request):
         # get my actor
         response = requests.get(TYPECAST_API_URL_ACTOR, headers=headers)
         if response.status_code != 200:
-            logger.error(f"Failed to get actor: {response.status_code}, {response.text}")
             return JsonResponse({'error': 'Failed to get actor'}, status=500)
 
         my_actors = response.json().get('result', [])
         if not my_actors:
-            logger.error("No actors found")
             return JsonResponse({'error': 'No actors found'}, status=500)
 
         my_first_actor = my_actors[0]
@@ -531,7 +529,6 @@ def typecast_speak(request):
             'model_version': 'latest'
         })
         if response.status_code != 200:
-            logger.error(f"Failed to request speech synthesis: {response.status_code}, {response.text}")
             return JsonResponse({'error': 'Failed to request speech synthesis'}, status=500)
 
         speak_url = response.json()['result']['speak_v2_url']
@@ -542,16 +539,12 @@ def typecast_speak(request):
             ret = response.json()['result']
             # audio is ready
             if ret['status'] == 'done':
-                # download audio file
                 audio_url = ret['audio_download_url']
                 return JsonResponse({'audio_url': audio_url}, status=200)
             else:
-                logger.info(f"status: {ret['status']}, waiting 1 second")
                 time.sleep(1)
 
-        logger.error("Audio synthesis timed out")
         return JsonResponse({'error': 'Audio synthesis timed out'}, status=500)
 
     except Exception as e:
-        logger.error(f"Exception in typecast_speak: {e}")
         return JsonResponse({'error': str(e)}, status=500)

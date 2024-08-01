@@ -53,5 +53,5 @@ urlpatterns = [
     path('get-api-key/', get_api_key, name='get_api_key'),
     path('service-account/', service_account, name='service_account'),
     path('typecast-speak/', typecast_speak, name='typecast_speak'),
-    path('chat-with-assistant/', chat_with_assistant, name='chat_with_assistant'),
+
 ]

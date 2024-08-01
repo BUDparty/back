@@ -30,7 +30,7 @@ SECRET_KEY = 'your-secret-key'
 DEBUG = False
 
 # 허용된 호스트 설정 (배포 시에는 특정 도메인을 설정)
-ALLOWED_HOSTS = ['35.202.241.53']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '[::1]', '10.0.2.2', '35.202.241.53']
 
 # 설치된 애플리케이션 목록
 INSTALLED_APPS = [

@@ -8,7 +8,7 @@ from .views import (
     get_saved_sentences, save_word, update_word, update_sentence, get_chapter_learning_progress,
     SentenceListCreate, update_sentence_is_collect, update_sentence_is_called,
     fetch_progress_data, fetch_incollect_words, update_sentence_accuracy_and_text, get_api_key, service_account,
-    typecast_speak, chat_with_assistant
+    typecast_speak
 )
 
 # DefaultRouter를 사용하여 ViewSet을 자동으로 라우팅합니다.

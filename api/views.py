@@ -500,6 +500,7 @@ def service_account(request):
 TYPECAST_API_URL_ACTOR = 'https://typecast.ai/api/actor'
 TYPECAST_API_URL_SPEAK = 'https://typecast.ai/api/speak'
 
+
 @api_view(['POST'])
 def typecast_speak(request):
     try:
